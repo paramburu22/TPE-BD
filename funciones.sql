@@ -82,7 +82,7 @@ CREATE TRIGGER distribute BEFORE INSERT OR UPDATE ON BIRTHS_TEMP
 FOR EACH ROW
 EXECUTE PROCEDURE distribute();
 
-COPY BIRTHS_TEMP FROM 'C:\Users\Public\us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
+COPY BIRTHS_TEMP FROM '/Applications/PostgreSQL 15/us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
 
 INSERT INTO BIRTHS_DEF(codigo_estado, anio, genero, nivel_ed, nacimientos, edad_promedio_madre, peso_promedio)
 SELECT estado.codigo_estado, anio.anio, births_temp.genero, nivel_educacion.nivel_ed, births_temp.nacimientos, births_temp.edad_promedio_madre, births_temp.peso_promedio
@@ -248,8 +248,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$
-BEGIN
-PERFORM ReporteConsolidado(7);
-END;
-$$ LANGUAGE plpgsql
+--DO $$
+--BEGIN
+--PERFORM ReporteConsolidado(7);
+--END;
+--$$ LANGUAGE plpgsql
