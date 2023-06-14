@@ -82,7 +82,7 @@ CREATE TRIGGER distribute BEFORE INSERT OR UPDATE ON BIRTHS_TEMP
 FOR EACH ROW
 EXECUTE PROCEDURE distribute();
 
-COPY BIRTHS_TEMP FROM '/Applications/PostgreSQL 15/us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
+COPY BIRTHS_TEMP FROM 'C:\Users\Public\us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
 
 INSERT INTO BIRTHS_DEF(codigo_estado, anio, genero, nivel_ed, nacimientos, edad_promedio_madre, peso_promedio)
 SELECT estado.codigo_estado, anio.anio, births_temp.genero, nivel_educacion.nivel_ed, births_temp.nacimientos, births_temp.edad_promedio_madre, births_temp.peso_promedio
@@ -129,7 +129,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION ReporteConsolidado_genero(_anio INTEGER, gender_val CHAR(1))
+CREATE OR REPLACE FUNCTION ReporteConsolidado_genero(_anio INTEGER, genero CHAR(1))
 RETURNS VOID AS $$
 DECLARE
     total INTEGER;
@@ -143,52 +143,49 @@ BEGIN
     SELECT
         SUM(nacimientos) INTO total
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = gender_val;
+    WHERE anio = _anio AND genero = genero;
 
     SELECT
         ROUND(AVG(edad_promedio_madre)::numeric, 0) INTO prom_edad
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = gender_val;
+    WHERE anio = _anio AND genero = genero;
 
     SELECT
         ROUND(MIN(edad_promedio_madre)::numeric,0) INTO min_edad
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = gender_val;
+    WHERE anio = _anio AND genero = genero;
 
     SELECT
         ROUND(MAX(edad_promedio_madre)::numeric,0) INTO max_edad
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = gender_val;
+    WHERE anio = _anio AND genero = genero;
 
     SELECT
         ROUND(AVG(peso_promedio / 1000.0)::numeric, 3) INTO prom_peso
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = gender_val;
+    WHERE anio = _anio AND genero = genero;
 
     SELECT
        ROUND(MIN(peso_promedio / 1000.0)::numeric, 3) INTO min_peso
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = gender_val;
+    WHERE anio = _anio AND genero = genero;
 
     SELECT
        ROUND(MAX(peso_promedio / 1000.0)::numeric, 3) INTO max_peso
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = gender_val;
+    WHERE anio = _anio AND genero = genero;
 
-    RAISE NOTICE '----   Gender: %', RPAD(gender_val::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
+    RAISE NOTICE '----   Gender: %', RPAD(genero::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
 
     RETURN;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION ReporteConsolidado(num_years INTEGER)
+CREATE OR REPLACE FUNCTION ReporteConsolidado(num_anios INTEGER)
 RETURNS VOID AS $$
 DECLARE
     anio_inicio INTEGER := 2016;
-    anio_fin INTEGER := anio_inicio + num_years - 1;
-	IF anio_fin > 2021 THEN
-		anio_fin := 2021;
-	END IF;
+    anio_fin INTEGER := anio_inicio + num_anios - 1;
     i INTEGER;
 	anio_flag BOOL := TRUE;
     estado_item estado%ROWTYPE;
@@ -203,6 +200,9 @@ DECLARE
     max_peso FLOAT;
     niv_ed nivel_educacion%ROWTYPE;
 BEGIN
+	IF anio_fin > 2021 THEN
+		anio_fin := 2021;
+	END IF;
 	RAISE NOTICE '========================================================================================================================================================================';
 	RAISE NOTICE '=========================================================================CONSOLIDATED BIRTH REPORT======================================================================';
 	RAISE NOTICE 'Year===Category========================================================================================Total=====AvgAge==MinAge==MaxAge==AvgWeight==MinWeight==MaxWeight';
@@ -230,7 +230,7 @@ BEGIN
         PERFORM ReporteConsolidado_genero(i,'M');
         PERFORM ReporteConsolidado_genero(i,'F');
 
-        FOR niv_ed IN SELECT * FROM nivel_educacion WHERE nivel_ed != -1 LOOP
+        FOR niv_ed IN SELECT * FROM nivel_educacion WHERE nivel_ed != -9 LOOP
             PERFORM ReporteConsolidado_nivel_ed(i, niv_ed.nivel_ed);
         END LOOP;
 
