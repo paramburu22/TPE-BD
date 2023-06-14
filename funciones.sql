@@ -129,7 +129,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION ReporteConsolidado_genero(_anio INTEGER, genero CHAR(1))
+CREATE OR REPLACE FUNCTION ReporteConsolidado_genero(_anio INTEGER, genero_item CHAR(1))
 RETURNS VOID AS $$
 DECLARE
     total INTEGER;
@@ -143,49 +143,49 @@ BEGIN
     SELECT
         SUM(nacimientos) INTO total
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = genero;
+    WHERE anio = _anio AND genero = genero_item;
 
     SELECT
         ROUND(AVG(edad_promedio_madre)::numeric, 0) INTO prom_edad
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = genero;
+    WHERE anio = _anio AND genero = genero_item;
 
     SELECT
         ROUND(MIN(edad_promedio_madre)::numeric,0) INTO min_edad
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = genero;
+    WHERE anio = _anio AND genero = genero_item;
 
     SELECT
         ROUND(MAX(edad_promedio_madre)::numeric,0) INTO max_edad
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = genero;
+    WHERE anio = _anio AND genero = genero_item;
 
     SELECT
         ROUND(AVG(peso_promedio / 1000.0)::numeric, 3) INTO prom_peso
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = genero;
+    WHERE anio = _anio AND genero = genero_item;
 
     SELECT
        ROUND(MIN(peso_promedio / 1000.0)::numeric, 3) INTO min_peso
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = genero;
+    WHERE anio = _anio AND genero = genero_item;
 
     SELECT
        ROUND(MAX(peso_promedio / 1000.0)::numeric, 3) INTO max_peso
     FROM BIRTHS_DEF
-    WHERE anio = _anio AND genero = genero;
+    WHERE anio = _anio AND genero = genero_item;
 
-    RAISE NOTICE '----   Gender: %', RPAD(genero::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
+    RAISE NOTICE '----   Gender: %', RPAD(genero_item::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
 
     RETURN;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION ReporteConsolidado(num_anios INTEGER)
+CREATE OR REPLACE FUNCTION ReporteConsolidado(cant_anios INTEGER)
 RETURNS VOID AS $$
 DECLARE
     anio_inicio INTEGER := 2016;
-    anio_fin INTEGER := anio_inicio + num_anios - 1;
+    anio_fin INTEGER := anio_inicio + cant_anios - 1;
     i INTEGER;
 	anio_flag BOOL := TRUE;
     estado_item estado%ROWTYPE;
