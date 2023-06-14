@@ -251,5 +251,5 @@ $$ LANGUAGE plpgsql;
 DO $$
 BEGIN
 PERFORM ReporteConsolidado(7);
-END;
+END;  
 $$ LANGUAGE plpgsql
