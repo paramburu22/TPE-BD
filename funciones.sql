@@ -79,7 +79,7 @@ CREATE TRIGGER distribute AFTER INSERT OR UPDATE ON BIRTHS_TEMP
 FOR EACH ROW
 EXECUTE PROCEDURE distribute();
 
-COPY BIRTHS_TEMP FROM 'C:\Users\Public\us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
+COPY BIRTHS_TEMP FROM '/Applications/PostgreSQL 15/us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
 
 CREATE OR REPLACE FUNCTION ReporteConsolidado_nivel_ed(_anio INTEGER, niv_ed INTEGER)
 RETURNS VOID AS $$
@@ -127,6 +127,7 @@ DECLARE
     prom_peso FLOAT;
     min_peso FLOAT;
     max_peso FLOAT;
+	genero_aux TEXT;
 BEGIN
     SELECT
         SUM(nacimientos) INTO total
@@ -163,13 +164,15 @@ BEGIN
     FROM BIRTHS_DEF
     WHERE anio = _anio AND genero = genero_item;
 	
-	SELECT CAST ( (case(genero)
+	SELECT CAST ((case(genero)
 		when 'M' then 'Male'
 		when 'F' then 'Female'
-		end ) as VARCHAR(10))
+		end ) as VARCHAR(10)) INTO genero_aux
 	FROM BIRTHS_DEF
+	WHERE genero = genero_item;
+	
 
-    RAISE NOTICE '----   Gender: %', RPAD(genero::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
+    RAISE NOTICE '----   Gender: %', RPAD(genero_aux::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
 
     RETURN;
 END;
@@ -198,9 +201,9 @@ BEGIN
 		anio_fin := (SELECT max(anio) FROM ANIO);
 	END IF;
   IF (cant_anios <= 0) THEN raise exception 'La cantidad de anios debe ser mayor a 0'; END IF;
-	RAISE NOTICE '========================================================================================================================================================================';
-	RAISE NOTICE '=========================================================================CONSOLIDATED BIRTH REPORT======================================================================';
-	RAISE NOTICE 'Year===Category========================================================================================Total=====AvgAge==MinAge==MaxAge==AvgWeight==MinWeight==MaxWeight';
+	RAISE NOTICE '------------------------------------------------------------------------------------------------------------------------------------------------------------------------';
+	RAISE NOTICE '-------------------------------------------------------------------------CONSOLIDATED BIRTH REPORT----------------------------------------------------------------------';
+	RAISE NOTICE 'Year---Category----------------------------------------------------------------------------------------Total-----AvgAge--MinAge--MaxAge--AvgWeight--MinWeight--MaxWeight';
 	RAISE NOTICE '------------------------------------------------------------------------------------------------------------------------------------------------------------------------';
     FOR i IN anio_inicio..anio_fin LOOP
         FOR estado_item IN SELECT * FROM estado LOOP
@@ -218,7 +221,7 @@ BEGIN
 				ELSE
 					RAISE NOTICE '----   State: %', RPAD(estado_item.nombre_estado::text, 80, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
 				END IF;
-            END IF;
+			END IF;
 
         END LOOP;
 
@@ -235,7 +238,7 @@ BEGIN
         WHERE anio = i;
 
         RAISE NOTICE '--------------------------------------------------------------------------------------------- %',RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
-        RAISE NOTICE '========================================================================================================================================================================';
+        RAISE NOTICE '------------------------------------------------------------------------------------------------------------------------------------------------------------------------';
 		anio_flag := TRUE;
     END LOOP;
 
