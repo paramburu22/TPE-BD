@@ -79,7 +79,7 @@ CREATE TRIGGER distribute AFTER INSERT OR UPDATE ON BIRTHS_TEMP
 FOR EACH ROW
 EXECUTE PROCEDURE distribute();
 
-COPY BIRTHS_TEMP FROM '/Applications/PostgreSQL 15/us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
+COPY BIRTHS_TEMP FROM 'C:\Users\Public\us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
 
 CREATE OR REPLACE FUNCTION ReporteConsolidado_nivel_ed(_anio INTEGER, niv_ed INTEGER)
 RETURNS VOID AS $$
@@ -164,12 +164,12 @@ BEGIN
     FROM BIRTHS_DEF
     WHERE anio = _anio AND genero = genero_item;
 	
-	SELECT CAST ((case(genero)
-		when 'M' then 'Male'
-		when 'F' then 'Female'
-		end ) as VARCHAR(10)) INTO genero_aux
-	FROM BIRTHS_DEF
-	WHERE genero = genero_item;
+    SELECT CAST ((case(genero)
+      when 'M' then 'Male'
+      when 'F' then 'Female'
+      end ) as VARCHAR(10)) INTO genero_aux
+    FROM BIRTHS_DEF
+    WHERE genero = genero_item;
 	
 
     RAISE NOTICE '----   Gender: %', RPAD(genero_aux::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
@@ -211,9 +211,9 @@ BEGIN
             INTO total, prom_edad, min_edad, max_edad, prom_peso, min_peso, max_peso
             FROM BIRTHS_DEF
             WHERE anio = i AND codigo_estado = estado_item.codigo_estado
-            GROUP BY codigo_estado;
+            GROUP BY codigo_estado, anio
+            HAVING SUM(nacimientos) > 200000;
 
-            IF total > 200000 THEN
 				IF anio_flag = TRUE
 				THEN
 					RAISE NOTICE '%   State: %', i, RPAD(estado_item.nombre_estado::text, 80, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
