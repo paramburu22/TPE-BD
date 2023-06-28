@@ -12,15 +12,14 @@ DROP FUNCTION IF EXISTS ReporteConsolidado_nivel_ed(_anio INTEGER, niv_ed INTEGE
 
 
 CREATE TABLE ESTADO (
-  nombre_estado varchar(30),
+  nombre_estado TEXT,
   codigo_estado varchar(2) NOT NULL,
-  PRIMARY KEY(codigo_estado),
-  UNIQUE(codigo_estado)	
+  PRIMARY KEY(codigo_estado)
 );
 
 CREATE TABLE ANIO (
-  anio INTEGER NOT NULL CHECK(anio >= 2016 AND anio <= 2021),
-  es_biciesto BOOLEAN,
+  anio INTEGER NOT NULL CHECK(anio>=1900),
+  es_bisiesto BOOLEAN,
   PRIMARY KEY(anio)	
 );
 
@@ -48,9 +47,9 @@ CREATE TABLE BIRTHS_DEF (
   anio INTEGER NOT NULL,
   genero varchar(1) NOT NULL,
   nivel_ed INTEGER NOT NULL,
-  nacimientos INTEGER,
-  edad_promedio_madre DECIMAL(3, 1),
-  peso_promedio DECIMAL(5, 1),
+  nacimientos INTEGER CHECK(nacimientos >= 0),
+  edad_promedio_madre DECIMAL(3, 1) CHECK(edad_promedio_madre >= 0),
+  peso_promedio DECIMAL(5, 1) CHECK(peso_promedio >= 0),
   FOREIGN KEY(codigo_estado) REFERENCES ESTADO ON DELETE CASCADE ON UPDATE RESTRICT,
   FOREIGN KEY(anio) REFERENCES ANIO ON DELETE CASCADE ON UPDATE RESTRICT,
   FOREIGN KEY(nivel_ed) REFERENCES NIVEL_EDUCACION(nivel_ed) ON DELETE CASCADE ON UPDATE RESTRICT,
@@ -59,39 +58,28 @@ CREATE TABLE BIRTHS_DEF (
 
 CREATE OR REPLACE FUNCTION distribute() RETURNS trigger AS $distribute$
 DECLARE
-  es_biciesto BOOLEAN;
+  es_bisiesto BOOLEAN;
 BEGIN
-  es_biciesto = (new.anio % 4 = 0) AND (new.anio % 100 <> 0);
+  es_bisiesto = (new.anio % 4 = 0) AND (new.anio % 100 <> 0);
   IF NOT EXISTS (SELECT 1 FROM anio WHERE anio = NEW.anio) THEN
-	INSERT INTO anio VALUES (NEW.anio, es_biciesto);
+	INSERT INTO anio VALUES (NEW.anio, es_bisiesto);
   END IF;
---   insert into anio values(new.anio, es_biciesto);
   IF NOT EXISTS (SELECT 1 FROM estado WHERE codigo_estado = NEW.codigo_estado) THEN
     INSERT INTO estado VALUES (NEW.nombre_estado, NEW.codigo_estado);
   END IF;
---   insert into estado values(new.nombre_estado, new.codigo_estado);
   IF NOT EXISTS (SELECT 1 FROM nivel_educacion WHERE descripcion_ed = NEW.descripcion_ed) THEN
     INSERT INTO nivel_educacion VALUES (NEW.descripcion_ed, NEW.nivel_ed);
   END IF;
---   insert into nivel_educacion values(new.descripcion_ed, new.nivel_ed);
+  INSERT INTO BIRTHS_DEF VALUES (NEW.codigo_estado, NEW.anio, NEW.genero, NEW.nivel_ed, NEW.nacimientos, NEW.edad_promedio_madre, NEW.peso_promedio);
 RETURN NEW;
 END;
 $distribute$ LANGUAGE plpgsql;
 
-CREATE TRIGGER distribute BEFORE INSERT OR UPDATE ON BIRTHS_TEMP
+CREATE TRIGGER distribute AFTER INSERT OR UPDATE ON BIRTHS_TEMP
 FOR EACH ROW
 EXECUTE PROCEDURE distribute();
 
-COPY BIRTHS_TEMP FROM '/Applications/PostgreSQL 15/us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
-
-INSERT INTO BIRTHS_DEF(codigo_estado, anio, genero, nivel_ed, nacimientos, edad_promedio_madre, peso_promedio)
-SELECT estado.codigo_estado, anio.anio, births_temp.genero, nivel_educacion.nivel_ed, births_temp.nacimientos, births_temp.edad_promedio_madre, births_temp.peso_promedio
-FROM estado, births_temp, anio, nivel_educacion
-WHERE estado.codigo_estado = births_temp.codigo_estado
-AND estado.nombre_estado = births_temp.nombre_estado
-AND anio.anio = births_temp.anio
-AND nivel_educacion.nivel_ed = births_temp.nivel_ed
-AND nivel_educacion.descripcion_ed = births_temp.descripcion_ed;
+COPY BIRTHS_TEMP FROM 'C:\Users\Public\us_births_2016_2021.csv' DELIMITER ',' CSV HEADER; 
 
 CREATE OR REPLACE FUNCTION ReporteConsolidado_nivel_ed(_anio INTEGER, niv_ed INTEGER)
 RETURNS VOID AS $$
@@ -123,7 +111,7 @@ BEGIN
         AND nivel_ed = niv_ed
 		AND nivel_ed > 0;
 
-    RAISE NOTICE '----   Nivel Educacion: %', RPAD(categoria::text, 70, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
+    RAISE NOTICE '----   Education: %', RPAD(categoria::text, 70, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
 
     RETURN;
 END;
@@ -174,8 +162,14 @@ BEGIN
        ROUND(MAX(peso_promedio / 1000.0)::numeric, 3) INTO max_peso
     FROM BIRTHS_DEF
     WHERE anio = _anio AND genero = genero_item;
+	
+	SELECT CAST ( (case(genero)
+		when 'M' then 'Male'
+		when 'F' then 'Female'
+		end ) as VARCHAR(10))
+	FROM BIRTHS_DEF
 
-    RAISE NOTICE '----   Gender: %', RPAD(genero_item::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
+    RAISE NOTICE '----   Gender: %', RPAD(genero::text, 79, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
 
     RETURN;
 END;
@@ -184,7 +178,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION ReporteConsolidado(cant_anios INTEGER)
 RETURNS VOID AS $$
 DECLARE
-    anio_inicio INTEGER := 2016;
+    anio_inicio INTEGER := (select min(anio) from ANIO);
     anio_fin INTEGER := anio_inicio + cant_anios - 1;
     i INTEGER;
 	anio_flag BOOL := TRUE;
@@ -200,9 +194,10 @@ DECLARE
     max_peso FLOAT;
     niv_ed nivel_educacion%ROWTYPE;
 BEGIN
-	IF anio_fin > 2021 THEN
-		anio_fin := 2021;
+	IF anio_fin > (SELECT max(anio) FROM ANIO) THEN
+		anio_fin := (SELECT max(anio) FROM ANIO);
 	END IF;
+  IF (cant_anios <= 0) THEN raise exception 'La cantidad de anios debe ser mayor a 0'; END IF;
 	RAISE NOTICE '========================================================================================================================================================================';
 	RAISE NOTICE '=========================================================================CONSOLIDATED BIRTH REPORT======================================================================';
 	RAISE NOTICE 'Year===Category========================================================================================Total=====AvgAge==MinAge==MaxAge==AvgWeight==MinWeight==MaxWeight';
@@ -248,8 +243,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
---DO $$
---BEGIN
---PERFORM ReporteConsolidado(7);
---END;
---$$ LANGUAGE plpgsql
+DO $$
+BEGIN
+PERFORM ReporteConsolidado(1);
+END;
+$$ LANGUAGE plpgsql
