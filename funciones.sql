@@ -111,7 +111,7 @@ BEGIN
         AND nivel_ed = niv_ed
 		AND nivel_ed > 0;
 
-    RAISE NOTICE '----   Education: %', RPAD(categoria::text, 70, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
+    RAISE NOTICE '----   Education: %', RPAD(categoria::text, 76, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
 
     RETURN;
 END;
@@ -203,7 +203,7 @@ BEGIN
   IF (cant_anios <= 0) THEN raise exception 'La cantidad de anios debe ser mayor a 0'; END IF;
 	RAISE NOTICE '------------------------------------------------------------------------------------------------------------------------------------------------------------------------';
 	RAISE NOTICE '-------------------------------------------------------------------------CONSOLIDATED BIRTH REPORT----------------------------------------------------------------------';
-	RAISE NOTICE 'Year---Category----------------------------------------------------------------------------------------Total-----AvgAge--MinAge--MaxAge--AvgWeight--MinWeight--MaxWeight';
+	RAISE NOTICE 'Year---Category-------------------------------------------------------------------------------Total-----AvgAge--MinAge--MaxAge--AvgWeight--MinWeight--MaxWeight---------';
 	RAISE NOTICE '------------------------------------------------------------------------------------------------------------------------------------------------------------------------';
     FOR i IN anio_inicio..anio_fin LOOP
         FOR estado_item IN SELECT * FROM estado LOOP
@@ -214,14 +214,16 @@ BEGIN
             GROUP BY codigo_estado, anio
             HAVING SUM(nacimientos) > 200000;
 
-				IF anio_flag = TRUE
-				THEN
-					RAISE NOTICE '%   State: %', i, RPAD(estado_item.nombre_estado::text, 80, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
-					anio_flag := FALSE;
-				ELSE
-					RAISE NOTICE '----   State: %', RPAD(estado_item.nombre_estado::text, 80, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
-				END IF;
-			END IF;
+            IF total IS NOT NULL
+            THEN
+                IF anio_flag = TRUE
+                THEN
+                  RAISE NOTICE '%   State: %', i, RPAD(estado_item.nombre_estado::text, 80, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
+                  anio_flag := FALSE;
+                ELSE
+                  RAISE NOTICE '----   State: %', RPAD(estado_item.nombre_estado::text, 80, ' ')||RPAD(total::text, 10, ' ')||RPAD(prom_edad::text, 8, ' ')||RPAD(min_edad::text, 8, ' ')||RPAD(max_edad::text, 8, ' ')||RPAD(prom_peso::text, 11, ' ')||RPAD(min_peso::text, 11, ' ')||RPAD(max_peso::text, 11, ' ');
+                END IF;
+            END IF;
 
         END LOOP;
 
@@ -246,8 +248,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DO $$
-BEGIN
-PERFORM ReporteConsolidado(1);
-END;
-$$ LANGUAGE plpgsql
+-- DO $$
+-- BEGIN
+-- PERFORM ReporteConsolidado(7);
+-- END;
+-- $$ LANGUAGE plpgsql
